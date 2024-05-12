@@ -1,95 +1,82 @@
+"use client";
 import Image from "next/image";
 import styles from "./page.module.css";
 
+import type { NextPage } from "next";
+import { toast } from "react-toastify";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useEffect, useState } from "react";
+import { Campaign } from "../utils/types";
+import { callGetCampaignsRPCMethod } from "../utils/api";
+import { CreateCampaignSection } from "../components/CreateCampaignSection";
+import { CampaignListSection } from "../components/CampaignListSection";
+
 export default function Home() {
+  const { connected, publicKey } = useWallet();
+  const [loading, setLoading] = useState<boolean>(false);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [yourCampaigns, setYourCampaigns] = useState<Campaign[]>([]);
+
+  const getCampaigns = async () => {
+    try {
+      setLoading(true);
+      const fetchedCampaigns =
+        (await callGetCampaignsRPCMethod()) as Campaign[];
+      setLoading(false);
+      setCampaigns(fetchedCampaigns as Campaign[]);
+      setYourCampaigns(
+        fetchedCampaigns.filter(
+          (it: Campaign) => it.admin.toString() === publicKey?.toString()
+        )
+      );
+    } catch (e: any) {
+      setCampaigns([]);
+      setYourCampaigns([]);
+      setLoading(false);
+      console.error(e);
+      toast.error(e.message || "There was an error getting the campaigns");
+    }
+  };
+
+  useEffect(() => {
+    getCampaigns();
+  }, []);
+
+  useEffect(() => {
+    getCampaigns();
+  }, [connected]);
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
+    <>
+
+      <div className={"lg:grid lg:grid-cols-2 lg:gap-10"}>
         <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
+          {!yourCampaigns?.length && (
+            <CreateCampaignSection
+              loading={loading}
+              getCampaigns={getCampaigns}
+              setLoading={setLoading}
             />
-          </a>
+          )}
+
+          <CampaignListSection
+            campaigns={yourCampaigns}
+            getCampaigns={getCampaigns}
+            isDonate={false}
+            loading={loading}
+            setLoading={setLoading}
+          />
         </div>
+
       </div>
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+      <CampaignListSection
+        campaigns={campaigns}
+        getCampaigns={getCampaigns}
+        isDonate={true}
+        loading={loading}
+        setLoading={setLoading}
+      />
+    </>
   );
 }

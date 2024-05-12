@@ -21,6 +21,9 @@ import { useMemo } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
+import "./globals.css";
+import "react-toastify/dist/ReactToastify.css";
+import "@solana/wallet-adapter-react-ui/styles.css";
 
 export default function RootLayout({
   children,
